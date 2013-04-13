@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Arrivals/Departurs Board</title>
+  <link rel="stylesheet" type="text/css" href="arrivals.css">
+</head>
+<body>
+
+  <button onclick="flipper.update_board()">update</button>
+  <ol id="board"></ol>
+
+
+  <script type="text/template" role="row" id="template_row">
+      <li></li>
+  </script>
+
+  <script type="text/template" role="letter" id="template_letter">
+      <span class="letter" id="">
+        <span class="top"></span>
+        <span class="bottom"></span>
+        <span class="flap">
+          <span class="back"></span>
+          <span class="front"></span>
+        </span>
+      </span>
+  </script>
+
+  <script type="text/javascript" src="arrivals.js"></script>
+  <script>
+    var content = [
+          "hello world",
+          "something else",
+          "yay pie", 
+          "does this work?",
+          "how about numbers: 1234",
+          "chars: ()5k2j!@$%",
+          "tom and jerry",
+          "CAPS and LOWERCASE"
+        ], 
+    
+        flipper = new flip('board', content);
+  </script>
+
+
+</body>
+</html>
