@@ -1,27 +1,29 @@
 //flip
 
       function flip(board_id, content){
-        this.rows = 5;
-        this.letters = 20;
+        this.rows     = 5;
+        this.letters  = 20;
 
-        this.board = document.getElementById(board_id);
-        this.content = content;
-        this.c = 0;
+        this.board    = document.getElementById(board_id);
+        this.chars    = " ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-";
+        this.content  = content;
+        this.c        = 0;
+
+        this.current_row    = 0;
+        this.row_animations = 0;
+
+        //data store representing the board dom (don't read the dom for data)
+        this.data     = [];
 
         this.templates = {
           row: document.getElementById('template_row').innerHTML,
           letter: document.getElementById('template_letter').innerHTML
         };
 
-        //data store representing the board dom (don't read the dom for data)
-        this.data = [];
-
-        this.chars = " ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-";
-
-
         this.initialize_loop();
         this.build_board();
-        this.update_board();
+        this.seed_row();
+        this.flip_row();
       }
 
       
@@ -30,7 +32,6 @@
 
         //after each animationIteration...
         this.board.addEventListener('webkitAnimationIteration', function(e){
-          //console.group('animationiteration');
           e.target.parentNode.style.webkitAnimationPlayState  = 'paused';
 
           var letter     = e.target.parentNode,
@@ -50,12 +51,16 @@
           //if the target char is showing, stop
           if(oletter.current == oletter.target){
             letter.className = "letter";
-            //console.log(current);
-            //console.groupEnd();
+            that.row_animations--;
+
+            if(that.row_animations == 0){
+              setTimeout(function(){
+                that.flip_next_row();
+              }, 5000);
+            }
             return;
           }
-          
-          
+
           //get ready to show "the next letter" (as the animation runs, this letter is revealed)
           letter.querySelector('.top').innerHTML  = next;
           letter.querySelector('.back').innerHTML = next;
@@ -63,29 +68,24 @@
           //increment the letter
           oletter.current = next;
           e.target.parentNode.style.webkitAnimationPlayState  = 'running';
-          //console.log(e.elapsedTime);
-          //console.groupEnd();
-
         });
       };
 
       flip.prototype.build_board= function(){
-        //console.log('in build board');
         var board = this.board,
-            _elr = document.createElement('div'),
-            _ell = document.createElement('div'),
+            _elr  = document.createElement('div'),
+            _ell  = document.createElement('div'),
             _row, _letter, lid;
 
-
-        //clear the board
+        //clear the board and reset data
         board.innerHTML = '';
         data = [];
 
-
-        //set up "row" element
+        //set up "row" and "letter" elements
         _elr.innerHTML = this.templates.row;
-        _elr = _elr.firstElementChild;
         _ell.innerHTML = this.templates.letter;
+
+        _elr = _elr.firstElementChild;
         _ell = _ell.firstElementChild;
 
 
@@ -101,7 +101,7 @@
           for(var l = 0; l < this.letters; l++){
             //in data
             this.data[r][l] = {
-              target: ' ',
+              target: '-',
               current: '-',
               el: null
             };  
@@ -113,59 +113,47 @@
 
             this.data[r][l].el = _letter;
             _row.appendChild( _letter );
-
-            //console.log('building board, about to render_letter');
-            //console.log(this.data[r][l]);
-
-            //this.render_letter(r,l)
-
           }
         }
-        
-        //console.log(this.board);
       };
 
 
       flip.prototype.render_letter = function(r,l){
-        var o = this.data[r][l],
-
-            el = o.el,
+        var o    = this.data[r][l],
+            el   = o.el,
             next = this.get_next_char(o);
 
         el.querySelector('.top').innerHTML = next;
         el.querySelector('.back').innerHTML = next;
-
         el.querySelector('.front').innerHTML = o.current;
         el.querySelector('.bottom').innerHTML = o.current;
 
         o.current = next;
-
-        el.className = 'letter flipflap';
       };
+
 
       flip.prototype.get_next_char = function(o){
         var current_index = this.chars.indexOf(o.current.toUpperCase()),
             next =  (current_index == this.chars.length -1) ? this.chars[0] : this.chars[current_index + 1]; 
-
         return next;
       };
 
-      flip.prototype.update_board = function(){
-        var text;
-        for(var r = 0; r < this.rows; r++){
-          text = this.sanitize_text(this.content[this.c])
-          this.c++;
-          if(this.c == this.content.length){
-            this.c = 0;
-          }
-          for(var l = 0; l < this.letters; l++){
-            this.data[r][l].target = text.charAt(l);
+      flip.prototype.seed_row = function(){
+        //reset row_animations
+        this.row_animations = 0;
 
-            //console.log('update_board, about to render_letter');
+        var text = this.sanitize_text(this.content[this.c]);
 
-            if(this.data[r][l].target == this.data[r][l].current){continue};
-            this.render_letter(r,l);
+        for(var l = 0; l < this.letters; l++){
+          if(text.charAt(l) !== this.data[this.current_row][l].target){
+            this.data[this.current_row][l].target = text.charAt(l);
+            this.row_animations++;
           }
+        }
+
+        this.c++;
+        if(this.c == this.content.length){
+          this.c = 0;
         }
       };
 
@@ -176,7 +164,6 @@
         //fixme: this regex should match this.chars
         //remove any unwanted letters
         text = text.replace(/[^a-zA-Z0-9 -]/g, '').toUpperCase();
-        //console.log(text);
 
         //pad the string, so the number of chars == this.letters
         while(text.length < this.letters){
@@ -186,4 +173,25 @@
         //text.length should equal this.letters (trim the string to fit the grid) 
         text = text.substring(0, this.letters);
         return text;
+      };
+
+      flip.prototype.flip_row = function(){
+        var oletter, row = this.current_row;
+
+        for(var l = 0; l < this.letters; l++){
+          oletter = this.data[row][l];
+
+          if(oletter.current !== oletter.target){
+          oletter.el.className = "letter flipflap";
+          }
+        }
+      };
+
+      flip.prototype.flip_next_row = function(){
+        this.current_row++;
+        if(this.current_row == this.rows){
+          this.current_row = 0;
+        }
+        this.seed_row();
+        this.flip_row();
       };
