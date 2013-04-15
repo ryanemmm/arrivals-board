@@ -2,7 +2,7 @@
 
       function flip(board_id, content){
         this.rows = 5;
-        this.letters = 30;
+        this.letters = 20;
 
         this.board = document.getElementById(board_id);
         this.content = content;
@@ -16,7 +16,7 @@
         //data store representing the board dom (don't read the dom for data)
         this.data = [];
 
-        this.chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ 0123456789-";
+        this.chars = " ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-";
 
 
         this.initialize_loop();
@@ -24,11 +24,14 @@
         this.update_board();
       }
 
+      
       flip.prototype.initialize_loop = function(){
         var that = this;
 
         //after each animationIteration...
-        board.addEventListener('webkitAnimationIteration', function(e){
+        this.board.addEventListener('webkitAnimationIteration', function(e){
+          //console.group('animationiteration');
+          e.target.parentNode.style.webkitAnimationPlayState  = 'paused';
 
           var letter     = e.target.parentNode,
               idx        = letter.getAttribute('id').split('_'),
@@ -59,6 +62,8 @@
 
           //increment the letter
           oletter.current = next;
+          e.target.parentNode.style.webkitAnimationPlayState  = 'running';
+          //console.log(e.elapsedTime);
           //console.groupEnd();
 
         });
@@ -109,7 +114,10 @@
             this.data[r][l].el = _letter;
             _row.appendChild( _letter );
 
-            this.render_letter(r,l)
+            //console.log('building board, about to render_letter');
+            //console.log(this.data[r][l]);
+
+            //this.render_letter(r,l)
 
           }
         }
@@ -120,6 +128,7 @@
 
       flip.prototype.render_letter = function(r,l){
         var o = this.data[r][l],
+
             el = o.el,
             next = this.get_next_char(o);
 
@@ -152,6 +161,9 @@
           for(var l = 0; l < this.letters; l++){
             this.data[r][l].target = text.charAt(l);
 
+            //console.log('update_board, about to render_letter');
+
+            if(this.data[r][l].target == this.data[r][l].current){continue};
             this.render_letter(r,l);
           }
         }
